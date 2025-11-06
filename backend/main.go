@@ -8,12 +8,12 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/pingpong", handler.PingPongHandler)
-	log.Println("[Server] Starting WebSocket server on port 8080")
-	log.Println("[Server] WebSocket endpoint: ws://localhost:8080/pingpong")
+	http.HandleFunc("/stream", handler.StreamHandler)
+	log.Println("Starting WebSocket server on port 8080")
+	log.Println("WebSocket endpoint: ws://localhost:8080/stream")
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		log.Fatalf("[Server] Fatal error starting server: %v", err)
+		log.Fatalf("Fatal error starting server: %v", err)
 	}
 }

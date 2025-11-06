@@ -23,21 +23,26 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-func PingPongHandler(w http.ResponseWriter, r *http.Request) {
-	clientIP := r.RemoteAddr
-	log.Printf("[WebSocket] Attempting to establish connection from client: %s", clientIP)
+func StreamHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Attempting to establish connection from client: %s", r.RemoteAddr)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("[WebSocket] Failed to upgrade HTTP connection to WebSocket (client: %s): %v", clientIP, err)
+		log.Printf("Failed to upgrade HTTP connection to WebSocket (client: %s): %v", r.RemoteAddr, err)
 		return
 	}
 
-	defer conn.Close()
+	defer func(conn *websocket.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Printf("Failed to close WebSocket connection (client: %s): %v", r.RemoteAddr, err)
+		}
+		log.Printf("WebSocket connection (client: %s) closed", r.RemoteAddr)
+	}(conn)
 
 	user, err := initUser(conn)
 	if err != nil {
-		log.Printf("[WebSocket] Failed to initialize user (client: %s): %v", clientIP, err)
+		log.Printf("Failed to initialize user (client: %s): %v", r.RemoteAddr, err)
 		return
 	}
 
@@ -45,27 +50,17 @@ func PingPongHandler(w http.ResponseWriter, r *http.Request) {
 	users[user.ConnectionId] = conn
 	mu.Unlock()
 
-	log.Printf("[WebSocket] User successfully connected - ConnectionId: %s, Username: %s, IP: %s", user.ConnectionId, user.Username, clientIP)
+	log.Printf("User successfully connected. ConnectionId: %s, Username: %s", user.ConnectionId, user.Username)
 
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("[WebSocket] Error reading message from user (ConnectionId: %s, Username: %s): %v", user.ConnectionId, user.Username, err)
-			return
+			log.Printf("Error reading message from user (ConnectionId: %s, Username: %s): %v", user.ConnectionId, user.Username, err)
+			continue
 		}
 
-		log.Printf("[WebSocket] Message received from user (ConnectionId: %s, Username: %s): %s", user.ConnectionId, user.Username, string(message))
-
-		if string(message) == "ping" {
-			err := conn.WriteMessage(websocket.TextMessage, []byte("pong"))
-			if err != nil {
-				log.Printf("[WebSocket] Error sending 'pong' response to user (ConnectionId: %s, Username: %s): %v", user.ConnectionId, user.Username, err)
-				return
-			}
-			log.Printf("[WebSocket] Sent 'pong' response to user (ConnectionId: %s, Username: %s)", user.ConnectionId, user.Username)
-		}
 		if string(message) == "play" {
-			log.Printf("[WebSocket] Received 'play' request from user (ConnectionId: %s, Username: %s)", user.ConnectionId, user.Username)
+			log.Printf("Received 'play' request from user (ConnectionId: %s, Username: %s)", user.ConnectionId, user.Username)
 			mu.RLock()
 			for id, uconn := range users {
 				err := uconn.WriteMessage(websocket.TextMessage, []byte("play"))
@@ -81,34 +76,28 @@ func PingPongHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func initUser(conn *websocket.Conn) (models.User, error) {
+	log.Printf("Waiting for user data (timeout: %v)", config.UserInitTimeout)
+
 	var user models.User
-
-	log.Printf("[UserInit] Waiting for user data (timeout: %v)", config.UserInitTimeout)
-
 	msgCh := make(chan []byte)
 	timer := time.NewTimer(config.UserInitTimeout)
 
 	go func() {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("[UserInit] Error reading message during user initialization: %v", err)
+			log.Printf("Error reading message during user initialization: %v", err)
 			return
 		}
-		log.Printf("[UserInit] Received user data: %s", string(message))
 		msgCh <- message
 	}()
 
 	select {
 	case msg := <-msgCh:
 		if err := json.Unmarshal(msg, &user); err != nil {
-			log.Printf("[UserInit] Error parsing user JSON data: %v, data: %s", err, string(msg))
 			return user, fmt.Errorf("failed to parse JSON: %w", err)
 		}
-		log.Printf("[UserInit] User successfully initialized - ConnectionId: %s, Username: %s", user.ConnectionId, user.Username)
 		return user, nil
 	case <-timer.C:
-		log.Printf("[UserInit] Timeout exceeded while waiting for user data (%v), connection closed", config.UserInitTimeout)
-		conn.Close()
 		return user, fmt.Errorf("timeout: no data received within %v", config.UserInitTimeout)
 	}
 }
