@@ -56,19 +56,20 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("Error reading message from user (ConnectionId: %s, Username: %s): %v", user.ConnectionId, user.Username, err)
-			continue
+			continue // ??
 		}
 
 		if string(message) == "play" {
 			log.Printf("Received 'play' request from user (ConnectionId: %s, Username: %s)", user.ConnectionId, user.Username)
 			mu.RLock()
 			for id, uconn := range users {
-				err := uconn.WriteMessage(websocket.TextMessage, []byte("play"))
-				if err != nil {
-					log.Printf("[WebSocket] Failed to broadcast 'play' to user (ConnectionId: %s): %v", id, err)
-				} else {
-					log.Printf("[WebSocket] Broadcasted 'play' to user (ConnectionId: %s)", id)
-				}
+				go func() {
+					if err := uconn.WriteMessage(websocket.TextMessage, []byte("play")); err != nil {
+						log.Printf("Failed to broadcast 'play' to user (ConnectionId: %s): %v", id, err)
+					} else {
+						log.Printf("Broadcasted 'play' to user (ConnectionId: %s)", id)
+					}
+				}()
 			}
 			mu.RUnlock()
 		}
