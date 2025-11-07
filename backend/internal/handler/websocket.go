@@ -15,9 +15,14 @@ import (
 )
 
 var (
-	users = make(map[string]*websocket.Conn)
+	rooms = make(map[string][]*userConnection)
 	mu    sync.RWMutex
 )
+
+type userConnection struct {
+	user       models.User
+	connection *websocket.Conn
+}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
@@ -47,7 +52,8 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mu.Lock()
-	users[user.ConnectionId] = conn
+	uc := userConnection{user, conn}
+	rooms[user.RoomId] = append(rooms[user.RoomId], &uc)
 	mu.Unlock()
 
 	log.Printf("User successfully connected. ConnectionId: %s, Username: %s", user.ConnectionId, user.Username)
@@ -60,12 +66,12 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		mu.RLock()
-		for id, uconn := range users {
+		for _, uc := range rooms[user.RoomId] {
 			go func() {
-				if err := uconn.WriteMessage(websocket.TextMessage, message); err != nil {
-					log.Printf("Failed to broadcast message to user (ConnectionId: %s): %v", id, err)
+				if err := uc.connection.WriteMessage(websocket.TextMessage, message); err != nil {
+					log.Printf("Failed to broadcast message to user (ConnectionId: %s): %v", uc.user.ConnectionId, err)
 				} else {
-					log.Printf("Broadcasted message to user (ConnectionId: %s)", id)
+					log.Printf("Broadcasted message to user (ConnectionId: %s)", uc.user.ConnectionId)
 				}
 			}()
 		}
