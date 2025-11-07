@@ -59,35 +59,17 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 			continue // ??  todo: think about continue later
 		}
 
-		if string(message) == "play" {
-			log.Printf("Received 'play' request from user (ConnectionId: %s, Username: %s)", user.ConnectionId, user.Username)
-			mu.RLock()
-			for id, uconn := range users {
-				go func() {
-					if err := uconn.WriteMessage(websocket.TextMessage, []byte("play")); err != nil {
-						log.Printf("Failed to broadcast 'play' to user (ConnectionId: %s): %v", id, err)
-					} else {
-						log.Printf("Broadcasted 'play' to user (ConnectionId: %s)", id)
-					}
-				}()
-			}
-			mu.RUnlock()
+		mu.RLock()
+		for id, uconn := range users {
+			go func() {
+				if err := uconn.WriteMessage(websocket.TextMessage, message); err != nil {
+					log.Printf("Failed to broadcast message to user (ConnectionId: %s): %v", id, err)
+				} else {
+					log.Printf("Broadcasted message to user (ConnectionId: %s)", id)
+				}
+			}()
 		}
-
-		if string(message) == "pause" {
-			log.Printf("Received 'pause' request from user (ConnectionId: %s, Username: %s)", user.ConnectionId, user.Username)
-			mu.RLock()
-			for id, uconn := range users {
-				go func() {
-					if err := uconn.WriteMessage(websocket.TextMessage, []byte("pause")); err != nil {
-						log.Printf("Failed to broadcast 'pause' to user (ConnectionId: %s): %v", id, err)
-					} else {
-						log.Printf("Broadcasted 'pause' to user (ConnectionId: %s)", id)
-					}
-				}()
-			}
-			mu.RUnlock()
-		}
+		mu.RUnlock()
 	}
 }
 
