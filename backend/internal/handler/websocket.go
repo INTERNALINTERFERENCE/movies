@@ -5,25 +5,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
 	"time"
 
 	"backend/internal/config"
 	"backend/internal/models"
 
+	"backend/internal/room"
+
 	"github.com/gorilla/websocket"
 )
 
-var (
-	rooms = make(map[string][]*userConnection)
-	mu    sync.RWMutex
-)
-
-type userConnection struct {
-	user       models.User
-	connection *websocket.Conn
-}
-
+var roomManager = manager.NewRoomManager()
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
@@ -51,31 +43,25 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mu.Lock()
-	uc := userConnection{user, conn}
-	rooms[user.RoomId] = append(rooms[user.RoomId], &uc)
-	mu.Unlock()
+	roomManager.AddUser(user.RoomId, user, conn)
+	defer roomManager.RemoveUser(user.RoomId, conn)
 
-	log.Printf("User successfully connected. ConnectionId: %s, Username: %s", user.ConnectionId, user.Username)
+	readLoop(conn, user.RoomId)
+}
 
+func readLoop(conn *websocket.Conn, roomId string) {
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("Error reading message from user (ConnectionId: %s, Username: %s): %v", user.ConnectionId, user.Username, err)
-			continue // ??  todo: think about continue later
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("Error reading message (client disconnected unexpectedly): %v", err)
+			} else {
+				log.Printf("Client disconnected: %v", err)
+			}
+			break
 		}
 
-		mu.RLock()
-		for _, uc := range rooms[user.RoomId] {
-			go func() {
-				if err := uc.connection.WriteMessage(websocket.TextMessage, message); err != nil {
-					log.Printf("Failed to broadcast message to user (ConnectionId: %s): %v", uc.user.ConnectionId, err)
-				} else {
-					log.Printf("Broadcasted message to user (ConnectionId: %s)", uc.user.ConnectionId)
-				}
-			}()
-		}
-		mu.RUnlock()
+		roomManager.BroadcastMessage(roomId, message)
 	}
 }
 
