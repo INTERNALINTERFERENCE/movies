@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"backend/internal/metrics"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,7 +10,6 @@ import (
 
 	"backend/internal/config"
 	"backend/internal/models"
-
 	"backend/internal/room"
 
 	"github.com/gorilla/websocket"
@@ -29,12 +29,16 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	metrics.ActiveConnections.Inc()
+
 	defer func(conn *websocket.Conn) {
 		err := conn.Close()
 		if err != nil {
 			log.Printf("Failed to close WebSocket connection (client: %s): %v", r.RemoteAddr, err)
 		}
 		log.Printf("WebSocket connection (client: %s) closed", r.RemoteAddr)
+
+		metrics.ActiveConnections.Dec()
 	}(conn)
 
 	user, err := initUser(conn)

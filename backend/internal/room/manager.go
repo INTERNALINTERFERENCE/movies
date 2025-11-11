@@ -90,6 +90,30 @@ func (rm *RoomManager) RemoveUser(roomId string, connToRemove *websocket.Conn) {
 	rm.broadcastUserList(roomId)
 }
 
+func (rm *RoomManager) BroadcastMessage(roomId string, message []byte) {
+	rm.mu.RLock()
+
+	room, ok := rm.rooms[roomId]
+	if !ok {
+		rm.mu.RUnlock()
+		return
+	}
+
+	connsToSend := make([]*websocket.Conn, 0, len(room))
+	for uc := range room {
+		connsToSend = append(connsToSend, uc.connection)
+	}
+	rm.mu.RUnlock()
+
+	for _, conn := range connsToSend {
+		go func() {
+			if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+				log.Printf("Failed to broadcast message: %v", err)
+			}
+		}()
+	}
+}
+
 func (rm *RoomManager) broadcastUserList(roomId string) {
 	rm.mu.RLock()
 
@@ -125,30 +149,6 @@ func (rm *RoomManager) broadcastUserList(roomId string) {
 		go func() {
 			if err := conn.WriteMessage(websocket.TextMessage, bytes); err != nil {
 				log.Printf("Failed to write user list for room %s: %v.", roomId, err)
-			}
-		}()
-	}
-}
-
-func (rm *RoomManager) BroadcastMessage(roomId string, message []byte) {
-	rm.mu.RLock()
-
-	room, ok := rm.rooms[roomId]
-	if !ok {
-		rm.mu.RUnlock()
-		return
-	}
-
-	connsToSend := make([]*websocket.Conn, 0, len(room))
-	for uc := range room {
-		connsToSend = append(connsToSend, uc.connection)
-	}
-	rm.mu.RUnlock()
-
-	for _, conn := range connsToSend {
-		go func() {
-			if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				log.Printf("Failed to broadcast message: %v", err)
 			}
 		}()
 	}

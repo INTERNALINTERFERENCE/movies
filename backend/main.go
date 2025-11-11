@@ -5,12 +5,17 @@ import (
 	"net/http"
 
 	"backend/internal/handler"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
 	http.HandleFunc("/stream", handler.StreamHandler)
+	http.Handle("/metrics", promhttp.Handler())
+
 	log.Println("Starting WebSocket server on port 8080")
 	log.Println("WebSocket endpoint: ws://localhost:8080/stream")
+	log.Println("Metrics endpoint: http://localhost:8080/metrics")
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
