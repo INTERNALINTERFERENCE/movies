@@ -31,7 +31,6 @@ class _ChatWidgetState extends State<ChatWidget> {
     if (text.isNotEmpty) {
       widget.onSendMessage(text);
       _messageController.clear();
-      // Scroll to bottom
       Future.delayed(const Duration(milliseconds: 100), () {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
@@ -64,7 +63,7 @@ class _ChatWidgetState extends State<ChatWidget> {
           decoration: BoxDecoration(
             border: Border(
               top: BorderSide(
-                color: const Color(0xFF334155).withOpacity(0.5),
+                color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
               ),
             ),
           ),
@@ -74,10 +73,10 @@ class _ChatWidgetState extends State<ChatWidget> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Color.fromARGB((255 * 0.05).round(), 255, 255, 255),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: const Color(0xFF334155).withOpacity(0.5),
+                      color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
                     ),
                   ),
                   child: TextField(
@@ -158,8 +157,8 @@ class _ChatBubble extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    const Color(0xFF6366F1).withOpacity(0.15),
-                    const Color(0xFF6366F1).withOpacity(0.05),
+                    Color.fromARGB((255 * 0.15).round(), 0x63, 0x66, 0xF1),
+                    Color.fromARGB((255 * 0.05).round(), 0x63, 0x66, 0xF1),
                   ],
                 ),
           borderRadius: BorderRadius.only(
@@ -172,7 +171,7 @@ class _ChatBubble extends StatelessWidget {
               ? null
               : Border(
                   left: BorderSide(
-                    color: const Color(0xFF818CF8).withOpacity(0.5),
+                    color: Color.fromARGB((255 * 0.5).round(), 0x81, 0x8C, 0xF8),
                     width: 2,
                   ),
                 ),
@@ -186,7 +185,7 @@ class _ChatBubble extends StatelessWidget {
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 color: isOwn
-                    ? Colors.white.withOpacity(0.7)
+                    ? Color.fromARGB((255 * 0.7).round(), 255, 255, 255)
                     : const Color(0xFFCBD5E1),
               ),
             ),
@@ -204,4 +203,3 @@ class _ChatBubble extends StatelessWidget {
     );
   }
 }
-

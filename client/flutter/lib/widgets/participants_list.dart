@@ -24,13 +24,13 @@ class ParticipantsList extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                const Color(0xFF6366F1).withOpacity(0.1),
-                const Color(0xFF6366F1).withOpacity(0.05),
+                Color.fromARGB((255 * 0.1).round(), 0x63, 0x66, 0xF1),
+                Color.fromARGB((255 * 0.05).round(), 0x63, 0x66, 0xF1),
               ],
             ),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: const Color(0xFF6366F1).withOpacity(0.2),
+              color: Color.fromARGB((255 * 0.2).round(), 0x63, 0x66, 0xF1),
             ),
           ),
           child: Row(

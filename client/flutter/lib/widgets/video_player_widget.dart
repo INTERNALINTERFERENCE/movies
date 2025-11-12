@@ -34,7 +34,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void initState() {
     super.initState();
     _initializeVideo();
-    // Request focus after widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -53,7 +52,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void _handleKeyPress(KeyEvent event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.space) {
-        // Space bar toggles play/pause
         if (_controller.value.isPlaying) {
           _controller.pause();
         } else {
@@ -81,7 +79,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         });
         _controller.addListener(_onVideoStateChanged);
         _controller.addListener(_onPositionChanged);
-        // Notify parent about state creation
         WidgetsBinding.instance.addPostFrameCallback((_) {
           widget.onStateCreated?.call(this);
         });
@@ -91,7 +88,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       print('Stack trace: $stackTrace');
       if (mounted) {
         setState(() {
-          _isInitialized = true; // Show error state
+          _isInitialized = true;
         });
       }
     });
@@ -101,7 +98,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   
   void _onPositionChanged() {
     final currentPosition = _controller.value.position;
-    // Detect significant position change (seek)
     if ((currentPosition - _lastPosition).inSeconds.abs() > 1) {
       if (_ignoreNextAction) {
         print('[SYNC] Position change ignored (muted).');
@@ -118,23 +114,17 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void _onVideoStateChanged() {
     final bool isCurrentlyPlaying = _controller.value.isPlaying;
 
-    // If the visual state and the internal state are already the same, do nothing.
     if (isCurrentlyPlaying == _isPlaying) return;
 
     print('[SYNC] Video state changed. New state: ${isCurrentlyPlaying ? "PLAYING" : "PAUSED"}');
 
-    // Update the internal state immediately.
     _isPlaying = isCurrentlyPlaying;
 
-    // Now, decide if we need to broadcast this change.
-    // If we are in the "ignore" window, it means this change was caused by a server command.
-    // So, we just update the state locally and don't send anything back.
     if (_ignoreNextAction) {
       print('[SYNC] State change was programmatic. Not sending to server.');
       return;
     }
 
-    // If we are not ignoring, it means the user initiated this action. Broadcast it.
     if (isCurrentlyPlaying) {
       print('[SYNC] Detected user PLAY. Sending to server.');
       widget.onVideoAction?.call('play', null);
@@ -227,8 +217,8 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              const Color(0xFF6366F1).withOpacity(0.1),
-              const Color(0xFFEC4899).withOpacity(0.1),
+              Color.fromARGB((255 * 0.1).round(), 0x63, 0x66, 0xF1),
+              Color.fromARGB((255 * 0.1).round(), 0xEC, 0x48, 0x99),
             ],
           ),
         ),
@@ -284,7 +274,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                   duration: const Duration(milliseconds: 300),
                   child: Stack(
                     children: [
-                      // Center play/pause button
                       if (!value.isPlaying)
                         Center(
                           child: GestureDetector(
@@ -296,7 +285,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                               width: 80,
                               height: 80,
                               decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.5),
+                                color: Color.fromARGB((255 * 0.5).round(), 0, 0, 0),
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.white, width: 3),
                               ),
@@ -305,7 +294,6 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                           ),
                         ),
 
-                      // Bottom controls bar
                       if (!widget.isPortrait)
                         Positioned(
                           bottom: 0,
@@ -319,7 +307,7 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                                 gradient: LinearGradient(
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
-                                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                                  colors: [Colors.transparent, Color.fromARGB((255 * 0.8).round(), 0, 0, 0)],
                                 ),
                               ),
                               child: Column(
@@ -336,13 +324,12 @@ class VideoPlayerWidgetState extends State<VideoPlayerWidget> {
                                             min: 0.0,
                                             max: value.duration.inSeconds.toDouble(),
                                             onChanged: (v) {
-                                              // This can be used to show seek time while dragging
                                             },
                                             onChangeEnd: (v) {
                                               _controller.seekTo(Duration(seconds: v.toInt()));
                                             },
                                             activeColor: Colors.white,
-                                            inactiveColor: Colors.white.withOpacity(0.3),
+                                            inactiveColor: Color.fromARGB((255 * 0.3).round(), 255, 255, 255),
                                           ),
                                         ),
                                         Text(_formatDuration(value.duration), style: const TextStyle(color: Colors.white)),

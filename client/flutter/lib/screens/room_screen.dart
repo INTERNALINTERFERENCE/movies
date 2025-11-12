@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:uuid/uuid.dart';
 import '../services/websocket_service.dart';
 import '../models/chat_message.dart';
 import '../widgets/video_player_widget.dart';
@@ -97,10 +96,10 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withOpacity(0.6),
+        color: Color.fromARGB((255 * 0.6).round(), 0x1E, 0x29, 0x3B),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFF334155).withOpacity(0.5),
+          color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
         ),
       ),
       child: Row(
@@ -133,7 +132,7 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF334155).withOpacity(0.5),
+                      color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
@@ -200,10 +199,8 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
 
   Widget _buildVideoSection({bool isPortrait = false}) {
     if (isPortrait) {
-      // Video with natural aspect ratio for portrait mode
       return Stack(
         children: [
-          // Background blur area at the top
           Positioned(
             top: 0,
             left: 0,
@@ -218,8 +215,8 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.4),
-                        Colors.black.withOpacity(0.2),
+                        Color.fromARGB((255 * 0.4).round(), 0, 0, 0),
+                        Color.fromARGB((255 * 0.2).round(), 0, 0, 0),
                         Colors.transparent,
                       ],
                     ),
@@ -228,14 +225,13 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
               ),
             ),
           ),
-          // Video player offset by 2cm from top
           Padding(
-            padding: const EdgeInsets.only(top: 50), // 2 cm offset from top
+            padding: const EdgeInsets.only(top: 50),
             child: Container(
               width: double.infinity,
               color: Colors.black,
               child: AspectRatio(
-                aspectRatio: 16 / 9, // Standard video aspect ratio
+                aspectRatio: 16 / 9,
                 child: VideoPlayerWidget(
                   videoUrl:
                       'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
@@ -243,7 +239,7 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
                   onStateCreated: (state) {
                     _videoPlayerState = state;
                   },
-                  isPortrait: false, // Use contain fit to show full video
+                  isPortrait: false,
                 ),
               ),
             ),
@@ -251,27 +247,16 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
         ],
       );
     } else {
-      // Landscape mode with padding
       return Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Video player
             Expanded(
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF6366F1).withOpacity(0.1),
-                      const Color(0xFFEC4899).withOpacity(0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFF334155).withOpacity(0.5),
+                    color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
                   ),
                 ),
                 child: ClipRRect(
@@ -302,15 +287,13 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Participants panel
             Expanded(
-              flex: 1,
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withOpacity(0.4),
+                  color: Color.fromARGB((255 * 0.4).round(), 0x1E, 0x29, 0x3B),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFF334155).withOpacity(0.5),
+                    color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
                   ),
                 ),
                 child: Column(
@@ -320,15 +303,15 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                            color: const Color(0xFF334155).withOpacity(0.5),
+                            color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
                           ),
                         ),
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            const Color(0xFF6366F1).withOpacity(0.05),
-                            const Color(0xFFEC4899).withOpacity(0.05),
+                            Color.fromARGB((255 * 0.05).round(), 0x63, 0x66, 0xF1),
+                            Color.fromARGB((255 * 0.05).round(), 0xEC, 0x48, 0x99),
                           ],
                         ),
                       ),
@@ -354,15 +337,14 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
               ),
             ),
             const SizedBox(height: 16),
-            // Chat panel
             Expanded(
               flex: 12,
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B).withOpacity(0.4),
+                  color: Color.fromARGB((255 * 0.4).round(), 0x1E, 0x29, 0x3B),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: const Color(0xFF334155).withOpacity(0.5),
+                    color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
                   ),
                 ),
                 child: Column(
@@ -372,15 +354,15 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                            color: const Color(0xFF334155).withOpacity(0.5),
+                            color: Color.fromARGB((255 * 0.5).round(), 0x33, 0x41, 0x55),
                           ),
                         ),
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                           colors: [
-                            const Color(0xFF6366F1).withOpacity(0.05),
-                            const Color(0xFFEC4899).withOpacity(0.05),
+                            Color.fromARGB((255 * 0.05).round(), 0x63, 0x66, 0xF1),
+                            Color.fromARGB((255 * 0.05).round(), 0xEC, 0x48, 0x99),
                           ],
                         ),
                       ),
@@ -417,9 +399,7 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
   Widget _buildPortraitLayout() {
     return Column(
       children: [
-        // Video player at the top
         _buildVideoSection(isPortrait: true),
-        // Room info below video
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -427,24 +407,22 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
             color: const Color(0xFF0F172A),
             border: Border(
               bottom: BorderSide(
-                color: const Color(0xFF334155).withOpacity(0.3),
+                color: Color.fromARGB((255 * 0.3).round(), 0x33, 0x41, 0x55),
               ),
             ),
           ),
           child: _buildRoomInfo(),
         ),
-        // Tabs with chat and participants
         Expanded(
           child: Container(
             color: const Color(0xFF0F172A),
             child: Column(
               children: [
-                // Tab bar
                 Container(
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
-                        color: const Color(0xFF334155).withOpacity(0.3),
+                        color: Color.fromARGB((255 * 0.3).round(), 0x33, 0x41, 0x55),
                       ),
                     ),
                   ),
@@ -474,17 +452,14 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
                     ],
                   ),
                 ),
-                // Tab content
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      // Chat tab
                       ChatWidget(
                         messages: _chatMessages,
                         onSendMessage: _onSendChatMessage,
                       ),
-                      // Participants tab
                       ParticipantsList(participants: _participants),
                     ],
                   ),
@@ -500,11 +475,9 @@ class _RoomScreenState extends State<RoomScreen> with SingleTickerProviderStateM
   Widget _buildLandscapeLayout() {
     return Row(
       children: [
-        // Main player section
         Expanded(
           child: _buildVideoSection(isPortrait: false),
         ),
-        // Sidebar
         _buildSidebar(),
       ],
     );

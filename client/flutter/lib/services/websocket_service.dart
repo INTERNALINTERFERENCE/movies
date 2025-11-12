@@ -19,7 +19,6 @@ class WebSocketService {
   String? _roomId;
   String? _username;
 
-  // Callbacks
   Function(List<String>)? onUserListUpdate;
   Function(String, String, bool)? onChatMessage;
   Function(String, double?)? onVideoAction;
@@ -33,7 +32,6 @@ class WebSocketService {
       print('Attempting to connect to $wsUrl...');
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
-      // Set up listener immediately
       _channel!.stream.listen(
         (message) {
           try {
@@ -56,7 +54,6 @@ class WebSocketService {
       await _channel!.ready.timeout(const Duration(seconds: 10));
       print('Connection ready!');
 
-      // Send init message
       _sendInit(username, roomId, connectionId);
       print('Init message sent.');
       return true;
