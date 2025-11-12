@@ -55,7 +55,7 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 
 func readLoop(conn *websocket.Conn, roomId string) {
 	for {
-		_, message, err := conn.ReadMessage()
+		messageType, message, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("Error reading message (client disconnected unexpectedly): %v", err)
@@ -65,6 +65,7 @@ func readLoop(conn *websocket.Conn, roomId string) {
 			break
 		}
 
+		log.Printf("Received message %s from client in room %s. Message type: %d", string(message), roomId, messageType)
 		roomManager.BroadcastMessage(roomId, message)
 	}
 }

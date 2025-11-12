@@ -1,10 +1,12 @@
 package manager
 
 import (
+	"backend/internal/config"
 	"backend/internal/models"
 	"encoding/json"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -25,6 +27,7 @@ type UserListPayload struct {
 type userConnection struct {
 	user       models.User
 	connection *websocket.Conn
+	mu         sync.Mutex
 }
 
 type RoomManager struct {
@@ -41,7 +44,7 @@ func NewRoomManager() *RoomManager {
 func (rm *RoomManager) AddUser(roomId string, user models.User, conn *websocket.Conn) {
 	rm.mu.Lock()
 
-	uc := &userConnection{user, conn}
+	uc := &userConnection{user: user, connection: conn}
 
 	if _, ok := rm.rooms[roomId]; !ok {
 		rm.rooms[roomId] = make(map[*userConnection]bool)
@@ -99,18 +102,30 @@ func (rm *RoomManager) BroadcastMessage(roomId string, message []byte) {
 		return
 	}
 
-	connsToSend := make([]*websocket.Conn, 0, len(room))
+	usersToSend := make([]*userConnection, 0, len(room))
 	for uc := range room {
-		connsToSend = append(connsToSend, uc.connection)
+		usersToSend = append(usersToSend, uc)
 	}
 	rm.mu.RUnlock()
 
-	for _, conn := range connsToSend {
-		go func() {
-			if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				log.Printf("Failed to broadcast message: %v", err)
+	for _, userConn := range usersToSend {
+		go func(uc *userConnection) {
+			uc.mu.Lock()
+			defer uc.mu.Unlock()
+
+			log.Printf("Attempting to broadcast message to user %s in room %s", uc.user.Username, roomId)
+			err := uc.connection.SetWriteDeadline(time.Now().Add(config.WriteTimeout))
+			if err != nil {
+				log.Printf("Failed to set write deadline for user %s: %v", uc.user.Username, err)
+				return
 			}
-		}()
+
+			if err := uc.connection.WriteMessage(websocket.TextMessage, message); err != nil {
+				log.Printf("Failed to broadcast message to user %s: %v", uc.user.Username, err)
+			} else {
+				log.Printf("Successfully broadcasted message to user %s in room %s.", uc.user.Username, roomId)
+			}
+		}(userConn)
 	}
 }
 
@@ -125,17 +140,17 @@ func (rm *RoomManager) broadcastUserList(roomId string) {
 	}
 
 	usernames := make([]string, 0, len(room))
-	conns := make([]*websocket.Conn, 0, len(room))
+	usersToUpdate := make([]*userConnection, 0, len(room))
 	for uc := range room {
 		usernames = append(usernames, uc.user.Username)
-		conns = append(conns, uc.connection)
+		usersToUpdate = append(usersToUpdate, uc)
 	}
 
 	rm.mu.RUnlock()
 
 	msg := WebSocketMessage{
-		MsgTypeUserListUpdate,
-		UserListPayload{usernames},
+		Type:    MsgTypeUserListUpdate,
+		Payload: UserListPayload{Usernames: usernames},
 	}
 
 	bytes, err := json.Marshal(msg)
@@ -145,11 +160,20 @@ func (rm *RoomManager) broadcastUserList(roomId string) {
 	}
 
 	log.Printf("Broadcasting user list for room %s (Users: %v)", roomId, usernames)
-	for _, conn := range conns {
-		go func() {
-			if err := conn.WriteMessage(websocket.TextMessage, bytes); err != nil {
-				log.Printf("Failed to write user list for room %s: %v.", roomId, err)
+	for _, userConn := range usersToUpdate {
+		go func(uc *userConnection) {
+			uc.mu.Lock()
+			defer uc.mu.Unlock()
+
+			err := uc.connection.SetWriteDeadline(time.Now().Add(config.WriteTimeout))
+			if err != nil {
+				log.Printf("Failed to set write deadline for user %s: %v", uc.user.Username, err)
+				return
 			}
-		}()
+
+			if err := uc.connection.WriteMessage(websocket.TextMessage, bytes); err != nil {
+				log.Printf("Failed to write user list for room %s to user %s: %v.", roomId, uc.user.Username, err)
+			}
+		}(userConn)
 	}
 }
