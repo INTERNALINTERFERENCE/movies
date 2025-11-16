@@ -1,0 +1,121 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    width: 300px;
+    padding: 10px;
+    background-color: #f4f4f9;
+    color: #333;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+h2 {
+    text-align: center;
+    margin: 0;
+    color: #4a4a4a;
+}
+
+#connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+}
+
+#status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.disconnected {
+    background-color: #ff5b5b; /* Red */
+}
+
+.connecting {
+    background-color: #ffc107; /* Yellow */
+}
+
+.connected {
+    background-color: #28a745; /* Green */
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+label {
+    font-weight: 500;
+    font-size: 0.9em;
+}
+
+input[type="text"] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+input[type="text"]:focus {
+    outline: none;
+    border-color: #007aff;
+    box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #007aff;
+    color: white;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #005ecb;
+}
+
+#disconnect-btn {
+    background-color: #ff5b5b;
+}
+
+#disconnect-btn:hover {
+    background-color: #d93a3a;
+}
+
+#room-info {
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+}
+
+#user-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 5px 0;
+    max-height: 100px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+}
+
+#user-list li {
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+}
+
+#user-list li:last-child {
+    border-bottom: none;
+}
+
+.hidden {
+    display: none;
+}

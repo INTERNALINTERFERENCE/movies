@@ -1,26 +1,34 @@
 package handler
 
 import (
+	"backend/internal/config"
 	"backend/internal/metrics"
+	"backend/internal/models"
+	"backend/internal/room"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
 
-	"backend/internal/config"
-	"backend/internal/models"
-	"backend/internal/room"
-
 	"github.com/gorilla/websocket"
 )
 
-var roomManager = manager.NewRoomManager()
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-func StreamHandler(w http.ResponseWriter, r *http.Request) {
+type WebSocketHandler struct {
+	roomManager *room.RoomManager
+}
+
+func NewWebSocketHandler(rm *room.RoomManager) *WebSocketHandler {
+	return &WebSocketHandler{
+		roomManager: rm,
+	}
+}
+
+func (h *WebSocketHandler) StreamHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Attempting to establish connection from client: %s", r.RemoteAddr)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -28,71 +36,65 @@ func StreamHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Failed to upgrade HTTP connection to WebSocket (client: %s): %v", r.RemoteAddr, err)
 		return
 	}
-
 	metrics.ActiveConnections.Inc()
-
-	defer func(conn *websocket.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Printf("Failed to close WebSocket connection (client: %s): %v", r.RemoteAddr, err)
-		}
-		log.Printf("WebSocket connection (client: %s) closed", r.RemoteAddr)
-
-		metrics.ActiveConnections.Dec()
-	}(conn)
 
 	user, err := initUser(conn)
 	if err != nil {
 		log.Printf("Failed to initialize user (client: %s): %v", r.RemoteAddr, err)
+		// Ensure connection is closed and metrics are updated on init failure
+		metrics.ActiveConnections.Dec()
+		if closeErr := conn.Close(); closeErr != nil {
+			log.Printf("Failed to close WebSocket connection on init error: %v", closeErr)
+		}
 		return
 	}
 
-	roomManager.AddUser(user.RoomId, user, conn)
-	defer roomManager.RemoveUser(user.RoomId, conn)
+	// Defer the decrement of active connections until the handler exits.
+	// This is now placed after a successful user init.
+	defer metrics.ActiveConnections.Dec()
 
-	readLoop(conn, user.RoomId)
+	h.roomManager.AddUser(user.RoomId, user, conn)
+	defer h.roomManager.RemoveUser(user.RoomId, user)
+
+	h.readLoop(conn, user)
 }
 
-func readLoop(conn *websocket.Conn, roomId string) {
+func (h *WebSocketHandler) readLoop(conn *websocket.Conn, user models.User) {
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("Error reading message (client disconnected unexpectedly): %v", err)
 			} else {
-				log.Printf("Client disconnected: %v", err)
+				log.Printf("Client %s disconnected: %v", user.ConnectionId, err)
 			}
 			break
 		}
 
-		log.Printf("Received message %s from client in room %s. Message type: %d", string(message), roomId, messageType)
-		roomManager.BroadcastMessage(roomId, message)
+		log.Printf("Received message %s from client %s in room %s. Message type: %d", string(message), user.ConnectionId, user.RoomId, messageType)
+		h.roomManager.RelayOrBroadcastMessage(user.RoomId, user.ConnectionId, message)
 	}
 }
 
 func initUser(conn *websocket.Conn) (models.User, error) {
 	log.Printf("Waiting for user data (timeout: %v)", config.UserInitTimeout)
 
-	var user models.User
-	msgCh := make(chan []byte)
-	timer := time.NewTimer(config.UserInitTimeout)
-
-	go func() {
-		_, message, err := conn.ReadMessage()
-		if err != nil {
-			log.Printf("Error reading message during user initialization: %v", err)
-			return
-		}
-		msgCh <- message
-	}()
-
-	select {
-	case msg := <-msgCh:
-		if err := json.Unmarshal(msg, &user); err != nil {
-			return user, fmt.Errorf("failed to parse JSON: %w", err)
-		}
-		return user, nil
-	case <-timer.C:
-		return user, fmt.Errorf("timeout: no data received within %v", config.UserInitTimeout)
+	if err := conn.SetReadDeadline(time.Now().Add(config.UserInitTimeout)); err != nil {
+		return models.User{}, fmt.Errorf("failed to set read deadline: %w", err)
 	}
+
+	_, message, err := conn.ReadMessage()
+	if err != nil {
+		return models.User{}, fmt.Errorf("failed to read init message: %w", err)
+	}
+
+	if err := conn.SetReadDeadline(time.Time{}); err != nil {
+		log.Printf("Failed to reset read deadline: %v", err)
+	}
+
+	var user models.User
+	if err := json.Unmarshal(message, &user); err != nil {
+		return user, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+	return user, nil
 }

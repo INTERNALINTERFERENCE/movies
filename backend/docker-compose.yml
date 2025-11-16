@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  backend:
+    # Build the Docker image from the Dockerfile in the current directory.
+    build: .
+    
+    # Name the container for easier identification.
+    container_name: movie_backend
+
+    ports:
+      # Map port 8080 on the host to port 8080 in the container.
+      # Format: <host_port>:<container_port>
+      - "8080:8080"
+
+    environment:
+      # Set the environment variables for the application.
+      # These values will be read by the config.go file.
+      - USER_INIT_TIMEOUT_SECONDS=5
+      - WRITE_TIMEOUT_SECONDS=5
+      
+    # Restart the container automatically if it stops.
+    restart: unless-stopped

@@ -5,12 +5,16 @@ import (
 	"net/http"
 
 	"backend/internal/handler"
+	"backend/internal/room"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
-	http.HandleFunc("/stream", handler.StreamHandler)
+	roomManager := room.NewRoomManager()
+	wsHandler := handler.NewWebSocketHandler(roomManager)
+
+	http.HandleFunc("/stream", wsHandler.StreamHandler)
 	http.Handle("/metrics", promhttp.Handler())
 
 	log.Println("Starting WebSocket server on port 8080")

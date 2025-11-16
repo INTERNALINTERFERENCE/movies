@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Movie Night Sync</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Movie Night Sync</h2>
+        <div id="connection-status">
+            <span id="status-indicator" class="disconnected"></span>
+            <span id="status-text">Disconnected</span>
+        </div>
+        <div id="main-controls">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your name">
+            </div>
+            <div class="input-group">
+                <label for="roomId">Room ID</label>
+                <input type="text" id="roomId" placeholder="Enter room ID">
+            </div>
+            <button id="connect-btn">Connect</button>
+        </div>
+        <div id="room-info" class="hidden">
+            <p>Connected to room: <strong id="connected-room-id"></strong></p>
+            <h4>Users in room:</h4>
+            <ul id="user-list"></ul>
+            <button id="disconnect-btn">Disconnect</button>
+        </div>
+    </div>
+    <div id="remote-audio-container" class="hidden">
+        <h4>Remote Audio:</h4>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>
